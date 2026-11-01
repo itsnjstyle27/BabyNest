@@ -1,7 +1,10 @@
 import {open} from 'react-native-nitro-sqlite';
-import {SCHEMA} from './schema';
+import {REMOVE_SAMPLE_DATA, SCHEMA} from './schema';
 
 const DATABASE_NAME = 'babynest.db';
+
+// Version 2 stopped seeding sample rows for user_id 1.
+const DATABASE_VERSION = 2;
 
 let db = null;
 
@@ -38,9 +41,31 @@ export async function openDB() {
     }
 
     console.log('SCHEMA FINISHED');
-    await db.execute(`PRAGMA user_version = 1;`);
-    console.log('VERSION SET TO 1');
+    await db.execute(`PRAGMA user_version = ${DATABASE_VERSION};`);
+    console.log(`VERSION SET TO ${DATABASE_VERSION}`);
+  } else if (version === 1) {
+    await removeSampleData();
   }
 
   return db;
+}
+
+async function removeSampleData() {
+  try {
+    await db.execute('BEGIN TRANSACTION');
+    for (const statement of REMOVE_SAMPLE_DATA) {
+      await db.execute(statement);
+    }
+    await db.execute(`PRAGMA user_version = ${DATABASE_VERSION};`);
+    await db.execute('COMMIT');
+  } catch (error) {
+    // Keep version 1 so the cleanup runs again on the next launch. The app
+    // still works with the sample rows, so do not fail opening the database.
+    console.error('Removing sample data failed:', error);
+    try {
+      await db.execute('ROLLBACK');
+    } catch {
+      // BEGIN failed, so there is no transaction to roll back.
+    }
+  }
 }

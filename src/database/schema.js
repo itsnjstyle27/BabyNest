@@ -140,140 +140,88 @@ export const SCHEMA = [
       );
     `,
 
-  // ─────────────────────────────────────────────
-  // SAMPLE TASKS
-  // user_id = 1 → John Doe
-  // ─────────────────────────────────────────────
+];
+
+// Databases created before version 2 were seeded with sample rows for
+// user_id 1. The first profile also gets id 1, so that user saw every default
+// task twice and sample weight, medicine and symptom entries next to their own.
+// These statements remove the sample rows and keep anything the user changed.
+export const REMOVE_SAMPLE_DATA = [
+  // The 18 sample tasks were inserted right after the table was created, so
+  // they have ids 1 to 18. createProfile adds its own copy of each one.
+  // Remove a sample task when there is no profile 1, or when it is untouched
+  // and the user has their own copy.
   `
-      INSERT INTO tasks
-        (
-          user_id,
-          title,
-          content,
-          starting_week,
-          ending_week,
-          task_priority,
-          isOptional,
-          isAppointmentMade,
-          task_status
-        )
-      VALUES
-        (1, 'Initial Prenatal Visit',
-          'First doctor visit to confirm pregnancy and health check.',
-          4, 4, 'high', FALSE, FALSE, 'pending'),
-
-        (1, 'Early Ultrasound',
-          'Confirm pregnancy location and heartbeat.',
-          6, 8, 'high', FALSE, FALSE, 'pending'),
-
-        (1, 'Folic Acid Supplementation',
-          'Start folic acid for neural tube development.',
-          4, 12, 'high', FALSE, FALSE, 'pending'),
-
-        (1, 'Blood Tests',
-          'Check for blood type, hemoglobin, and infections.',
-          8, 10, 'high', FALSE, FALSE, 'pending'),
-
-        (1, 'Down Syndrome Screening',
-          'Non-invasive prenatal screening for chromosomal conditions.',
-          10, 12, 'medium', FALSE, FALSE, 'pending'),
-
-        (1, 'NT Scan',
-          'Nuchal translucency scan for fetal abnormalities.',
-          12, 14, 'high', FALSE, FALSE, 'pending'),
-
-        (1, 'Gestational Diabetes Test',
-          'Glucose test to check blood sugar levels.',
-          14, 16, 'high', FALSE, FALSE, 'pending'),
-
-        (1, 'Detailed Anomaly Scan',
-          '20-week scan to check fetal development.',
-          18, 20, 'high', FALSE, FALSE, 'pending'),
-
-        (1, 'Fetal Movement Monitoring',
-          'Track baby movements for health assessment.',
-          21, 24, 'medium', FALSE, FALSE, 'pending'),
-
-        (1, 'Iron and Calcium Supplements',
-          'Ensure proper bone and blood health for mother and baby.',
-          21, 28, 'medium', FALSE, FALSE, 'pending'),
-
-        (1, 'Rh Factor Screening',
-          'Test if mother needs Rh immunoglobulin.',
-          26, 28, 'high', FALSE, FALSE, 'pending'),
-
-        (1, 'Glucose Tolerance Test',
-          'Second test if needed for gestational diabetes.',
-          28, 28, 'medium', FALSE, FALSE, 'pending'),
-
-        (1, 'Pre-Birth Vaccination',
-          'Tdap and flu shots for maternal and newborn protection.',
-          30, 32, 'high', FALSE, FALSE, 'pending'),
-
-        (1, 'Third-Trimester Ultrasound',
-          'Assess baby’s growth and position.',
-          30, 32, 'high', FALSE, FALSE, 'pending'),
-
-        (1, 'Birth Plan Discussion',
-          'Discuss delivery preferences with doctor.',
-          33, 34, 'medium', TRUE, FALSE, 'pending'),
-
-        (1, 'Hospital Tour',
-          'Visit maternity hospital to prepare for delivery.',
-          33, 34, 'low', TRUE, FALSE, 'pending'),
-
-        (1, 'Labor Signs Monitoring',
-          'Educate about labor contractions and when to go to hospital.',
-          36, 40, 'high', FALSE, FALSE, 'pending'),
-
-        (1, 'Final Checkups',
-          'Last medical assessments before labor.',
-          38, 40, 'high', FALSE, FALSE, 'pending');
+      DELETE FROM tasks
+      WHERE user_id = 1
+        AND id <= 18
+        AND (
+          NOT EXISTS (SELECT 1 FROM profile WHERE id = 1)
+          OR (
+            task_status = 'pending'
+            AND isAppointmentMade = 0
+            AND EXISTS (
+              SELECT 1 FROM tasks AS copy
+              WHERE copy.user_id = 1
+                AND copy.id > 18
+                AND copy.title = tasks.title
+            )
+          )
+        );
     `,
 
-  // ─────────────────────────────────────────────
-  // SAMPLE WEEKLY WEIGHT
-  // ─────────────────────────────────────────────
+  // A sample task that is still there was completed or turned into an
+  // appointment, so remove the user's untouched copy of it instead.
   `
-      INSERT INTO weekly_weight
-        (user_id, week_number, weight, note)
-      VALUES
-        (1, 8, 60.5, 'Slight nausea, but overall feeling okay'),
-        (1, 9, 60.9, 'Appetite increasing slightly'),
-        (1, 10, 61.3, 'Started prenatal yoga, feeling good');
+      DELETE FROM tasks
+      WHERE user_id = 1
+        AND id > 18
+        AND task_status = 'pending'
+        AND isAppointmentMade = 0
+        AND EXISTS (
+          SELECT 1 FROM tasks AS sample
+          WHERE sample.user_id = 1
+            AND sample.id <= 18
+            AND sample.title = tasks.title
+        );
     `,
 
-  // ─────────────────────────────────────────────
-  // SAMPLE WEEKLY MEDICINE
-  // ─────────────────────────────────────────────
   `
-      INSERT INTO weekly_medicine
-        (user_id, week_number, name, dose, time, taken, note)
-      VALUES
-        (1, 8, 'Prenatal Vitamin', '1 tablet', '08:00', 1,
-          'Daily multivitamin with folic acid'),
-
-        (1, 9, 'Iron Supplement', '30mg', '13:00', 1,
-          'Taking to help with mild anemia'),
-
-        (1, 10, 'Prenatal Vitamin', '1 tablet', '08:00', 1,
-          'No side effects, continuing as normal');
+      DELETE FROM weekly_weight
+      WHERE user_id = 1
+        AND (
+          (week_number = 8 AND weight = 60.5
+            AND note = 'Slight nausea, but overall feeling okay')
+          OR (week_number = 9 AND weight = 60.9
+            AND note = 'Appetite increasing slightly')
+          OR (week_number = 10 AND weight = 61.3
+            AND note = 'Started prenatal yoga, feeling good')
+        );
     `,
 
-  // ─────────────────────────────────────────────
-  // SAMPLE WEEKLY SYMPTOMS
-  // ─────────────────────────────────────────────
   `
-      INSERT INTO weekly_symptoms
-        (user_id, week_number, symptom, note)
-      VALUES
-        (1, 8, 'Morning Sickness',
-          'Worse after waking up'),
+      DELETE FROM weekly_medicine
+      WHERE user_id = 1
+        AND (
+          (week_number = 8 AND name = 'Prenatal Vitamin'
+            AND note = 'Daily multivitamin with folic acid')
+          OR (week_number = 9 AND name = 'Iron Supplement'
+            AND note = 'Taking to help with mild anemia')
+          OR (week_number = 10 AND name = 'Prenatal Vitamin'
+            AND note = 'No side effects, continuing as normal')
+        );
+    `,
 
-        (1, 9, 'Breast Tenderness',
-          'More sensitive than last week'),
-
-        (1, 10, 'Frequent Urination',
-          'Especially during the night');
+  `
+      DELETE FROM weekly_symptoms
+      WHERE user_id = 1
+        AND (
+          (week_number = 8 AND symptom = 'Morning Sickness'
+            AND note = 'Worse after waking up')
+          OR (week_number = 9 AND symptom = 'Breast Tenderness'
+            AND note = 'More sensitive than last week')
+          OR (week_number = 10 AND symptom = 'Frequent Urination'
+            AND note = 'Especially during the night')
+        );
     `,
 ];
