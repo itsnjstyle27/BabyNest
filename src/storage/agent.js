@@ -1,6 +1,7 @@
 import {openDB} from '../database';
 import {success, failure} from '../utils/serviceResponse';
 import GUIDELINES from '../data/guidelines.json';
+import {getPregnancyWeek} from '../utils/pregnancyWeek';
 
 // In-memory cache only.
 // Nothing is written to disk.
@@ -142,20 +143,10 @@ async function buildContext(userId) {
   let currentWeek = 1;
 
   if (dueDate) {
-    const dueDateObj = new Date(`${dueDate}T00:00:00`);
+    const week = getPregnancyWeek(dueDate);
 
-    if (!Number.isNaN(dueDateObj.getTime())) {
-      const today = new Date();
-
-      const difference = dueDateObj.getTime() - today.getTime();
-
-      const daysLeft = Math.floor(difference / (1000 * 60 * 60 * 24));
-
-      const weeksLeft = Math.floor(daysLeft / 7);
-
-      currentWeek = 40 - weeksLeft;
-
-      currentWeek = Math.max(1, Math.min(currentWeek, 40));
+    if (!Number.isNaN(week)) {
+      currentWeek = week;
     }
   }
 

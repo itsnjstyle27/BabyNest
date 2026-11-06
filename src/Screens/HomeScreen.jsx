@@ -21,6 +21,7 @@ import {getAppointments} from '../storage/appointments';
 import {getTasks} from '../storage/tasks';
 import TaskDetailsModal from '../Components/TaskDetailsModal';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {getPregnancyWeek} from '../utils/pregnancyWeek';
 
 export default function HomeScreen({navigation}) {
   const [dueDate, setDueDate] = useState('');
@@ -88,7 +89,7 @@ export default function HomeScreen({navigation}) {
         setDueDate(fetchedDueDate);
         console.log(' Due Date:', fetchedDueDate); // Debugging line
 
-        const calculatedWeek = calculateCurrentWeek(fetchedDueDate);
+        const calculatedWeek = getPregnancyWeek(fetchedDueDate);
         setCurrentWeek(calculatedWeek);
         setCurrentBabySize(babySizes[calculatedWeek - 1]);
         scrollToWeek(calculatedWeek);
@@ -118,17 +119,6 @@ export default function HomeScreen({navigation}) {
     } catch (error) {
       console.error('Error fetching data:', error);
     }
-  };
-
-  const calculateCurrentWeek = dueDateString => {
-    const dueDateObj = new Date(dueDateString);
-    const conceptionDate = new Date(dueDateObj);
-    conceptionDate.setDate(conceptionDate.getDate() - 280);
-
-    const now = new Date();
-    const diffInMs = now - conceptionDate;
-    const week = Math.floor(diffInMs / (1000 * 60 * 60 * 24 * 7));
-    return Math.min(Math.max(week, 1), 40);
   };
 
   const scrollToWeek = week => {
