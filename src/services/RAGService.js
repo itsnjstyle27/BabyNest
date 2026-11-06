@@ -2058,6 +2058,23 @@ Rules:
       return `${yearStr}-${monthStr}-${dayStr}`;
     }
 
+    // The extraction prompts ask the model for YYYY-MM-DD
+    const isoMatch = dateString.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+
+    if (isoMatch) {
+      const month = parseInt(isoMatch[2]) - 1;
+      const date = new Date(
+        parseInt(isoMatch[1]),
+        month,
+        parseInt(isoMatch[3]),
+      );
+
+      // new Date() moves 31 February into March instead of failing
+      if (date.getMonth() === month) {
+        return isoMatch.slice(1, 4).join('-');
+      }
+    }
+
     // Handle dates like "12 october" or "12 October 2025"
     const monthNames = [
       'january',
@@ -2078,10 +2095,18 @@ Rules:
       /(\d{1,2})\s+(january|february|march|april|may|june|july|august|september|october|november|december)(?:\s+(\d{4}))?/i,
     );
 
-    if (dateMatch) {
-      const day = parseInt(dateMatch[1]);
-      const monthName = dateMatch[2].toLowerCase();
-      const year = dateMatch[3] ? parseInt(dateMatch[3]) : currentYear;
+    // Handle dates like "october 12" or "October 12, 2025"
+    const monthFirstMatch = dateString.match(
+      /(january|february|march|april|may|june|july|august|september|october|november|december)\s+(\d{1,2})(?:st|nd|rd|th)?(?:,?\s+(\d{4}))?/i,
+    );
+
+    if (dateMatch || monthFirstMatch) {
+      const day = parseInt(dateMatch ? dateMatch[1] : monthFirstMatch[2]);
+      const monthName = (
+        dateMatch ? dateMatch[2] : monthFirstMatch[1]
+      ).toLowerCase();
+      const yearText = dateMatch ? dateMatch[3] : monthFirstMatch[3];
+      const year = yearText ? parseInt(yearText) : currentYear;
       const month = monthNames.indexOf(monthName);
 
       if (month !== -1) {
