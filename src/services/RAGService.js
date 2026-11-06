@@ -2134,22 +2134,19 @@ Rules:
       return '09:00'; // Default to 9 AM
     }
 
-    // Handle "morning", "afternoon", "evening"
-    if (timeString.toLowerCase().includes('morning')) return '09:00';
-    if (timeString.toLowerCase().includes('afternoon')) return '14:00';
-    if (timeString.toLowerCase().includes('evening')) return '18:00';
-    if (timeString.toLowerCase().includes('night')) return '20:00';
+    const text = timeString.toLowerCase();
 
-    // Handle time formats like "2pm", "2 pm", "14:00"
-    const timeMatch = timeString.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/i);
+    // Handle time formats like "2pm", "2 pm", "14:00", "3 in the afternoon".
+    // The number comes first, as the words only say which part of the day it is.
+    const timeMatch = text.match(/(\d{1,2})(?::(\d{2}))?\s*(am|pm)?/);
 
     if (timeMatch) {
       let hours = parseInt(timeMatch[1]);
       const minutes = timeMatch[2] ? parseInt(timeMatch[2]) : 0;
-      const period = timeMatch[3] ? timeMatch[3].toLowerCase() : '';
+      const period = timeMatch[3] || this.getPeriodFromWords(text, hours);
 
       // Convert to 24-hour format
-      if (period === 'pm' && hours !== 12) {
+      if (period === 'pm' && hours < 12) {
         hours += 12;
       } else if (period === 'am' && hours === 12) {
         hours = 0;
@@ -2160,7 +2157,27 @@ Rules:
         .padStart(2, '0')}`;
     }
 
+    // Handle "morning", "afternoon", "evening". "noon" is inside "afternoon"
+    // and "night" is inside "midnight", so the order matters here.
+    if (text.includes('midnight')) return '00:00';
+    if (text.includes('afternoon')) return '14:00';
+    if (text.includes('noon')) return '12:00';
+    if (text.includes('morning')) return '09:00';
+    if (text.includes('evening')) return '18:00';
+    if (text.includes('night')) return '20:00';
+
     return '09:00'; // Default fallback
+  }
+
+  /**
+   * Which half of the day the words next to a number of hours point to
+   */
+  getPeriodFromWords(text, hours) {
+    if (/morning|midnight/.test(text)) return 'am';
+    if (/afternoon|evening/.test(text)) return 'pm';
+    // "10 at night" is 22:00, but "1 at night" is 01:00
+    if (text.includes('night')) return hours === 12 || hours < 5 ? 'am' : 'pm';
+    return '';
   }
 
   /**
