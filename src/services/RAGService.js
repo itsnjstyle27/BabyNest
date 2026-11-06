@@ -44,6 +44,7 @@ import {
   updateWeight,
 } from '../storage/weight';
 import {openDB} from '../database';
+import {formatLocalDate} from '../utils/formatLocalDate';
 
 class RAGService {
   constructor() {
@@ -1293,7 +1294,7 @@ class RAGService {
    * @returns String
    */
   getUpdateAppointmentExtractionPrompt = () => {
-    const currentDate = new Date().toISOString().slice(0, 10);
+    const currentDate = formatLocalDate(new Date());
 
     return `
       You are a structured data extraction engine for BabyNest.
@@ -1360,7 +1361,7 @@ class RAGService {
    * @returns String
    */
   getAppointmentExtractionPrompt = () => {
-    const currentDate = new Date().toISOString().slice(0, 10);
+    const currentDate = formatLocalDate(new Date());
 
     return `
   You are a structured data extraction engine for BabyNest.
@@ -1723,7 +1724,7 @@ Rules:
    * @returns String
    */
   getDataExtractionPrompt = () => {
-    const currentDate = new Date().toISOString().slice(0, 10);
+    const currentDate = formatLocalDate(new Date());
 
     return `
 You are a structured data extraction engine for BabyNest.
@@ -2024,7 +2025,7 @@ Rules:
    */
   convertToDate(dateString) {
     if (!dateString || dateString === 'TBD') {
-      return new Date().toISOString().split('T')[0]; // Default to today
+      return formatLocalDate(new Date()); // Default to today
     }
 
     const today = new Date();
@@ -3090,7 +3091,11 @@ Rules:
               .includes(identifier.value.toLowerCase());
           break;
         case 'day':
-          const appointmentDate = new Date(appointment.appointment_date);
+          // Read as a local date: without a time, new Date() would read it as
+          // UTC and getDay() would give the previous day west of UTC.
+          const appointmentDate = new Date(
+            `${appointment.appointment_date}T00:00:00`,
+          );
           const dayNames = [
             'sunday',
             'monday',
@@ -3112,11 +3117,11 @@ Rules:
           } else if (identifier.value === 'tomorrow') {
             const tomorrow = new Date();
             tomorrow.setDate(tomorrow.getDate() + 1);
-            const tomorrowStr = tomorrow.toISOString().split('T')[0];
+            const tomorrowStr = formatLocalDate(tomorrow);
             isMatch = appointment.appointment_date === tomorrowStr;
           } else if (identifier.value === 'today') {
             const today = new Date();
-            const todayStr = today.toISOString().split('T')[0];
+            const todayStr = formatLocalDate(today);
             isMatch = appointment.appointment_date === todayStr;
           }
           break;

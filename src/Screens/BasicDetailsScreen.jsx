@@ -19,12 +19,13 @@ import {Calendar} from 'react-native-calendars';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import {createProfile} from '../storage/profile';
 import {useSafeAreaInsets} from 'react-native-safe-area-context';
+import {formatLocalDate} from '../utils/formatLocalDate';
 
 export default function BasicDetailsScreen() {
   const navigation = useNavigation();
 
   const [country, setCountry] = useState('');
-  const today = useMemo(() => new Date().toISOString().split('T')[0], []);
+  const today = useMemo(() => formatLocalDate(new Date()), []);
   const [lmpDate, setLmpDate] = useState(today);
   const [cycleLength, setCycleLength] = useState('');
   const [periodLength, setPeriodLength] = useState('');
