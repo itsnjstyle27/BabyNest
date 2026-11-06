@@ -2,6 +2,39 @@ import {openDB} from '../database';
 import {success, failure} from '../utils/serviceResponse';
 import {clearAgentContext} from './agent';
 
+// Number('') is 0, so a cleared text input has to be turned away first.
+const toNumber = value =>
+  typeof value === 'string' && value.trim() === '' ? NaN : Number(value);
+
+/**
+ * Check the values of a log before saving them
+ * @returns A failure response, or null when the values are fine
+ */
+function validateBPValues(weekNumber, systolic, diastolic) {
+  const week = toNumber(weekNumber);
+
+  if (!Number.isInteger(week)) {
+    return failure(
+      'week_number must be a valid integer',
+      'INVALID_WEEK_NUMBER',
+    );
+  }
+
+  if (week < 1 || week > 40) {
+    return failure('Please enter a valid week', 'INVALID_WEEK_NUMBER');
+  }
+
+  if (!(toNumber(systolic) > 0)) {
+    return failure('systolic must be a valid number', 'INVALID_SYSTOLIC');
+  }
+
+  if (!(toNumber(diastolic) > 0)) {
+    return failure('diastolic must be a valid number', 'INVALID_DIASTOLIC');
+  }
+
+  return null;
+}
+
 /**
  * Add blood pressure log
  */
@@ -38,23 +71,14 @@ export async function addBPLog(userId, data) {
     const systolic = Number(data.systolic);
     const diastolic = Number(data.diastolic);
 
-    // Basic validation
-    if (!Number.isInteger(weekNumber)) {
-      return failure(
-        'week_number must be a valid integer',
-        'INVALID_WEEK_NUMBER',
-      );
-    }
-    if (weekNumber > 40) {
-      return failure('Please enter a valid week', 'INVALID_FEILDS');
-    }
+    const invalid = validateBPValues(
+      data.week_number,
+      data.systolic,
+      data.diastolic,
+    );
 
-    if (!Number.isFinite(systolic)) {
-      return failure('systolic must be a valid number', 'INVALID_SYSTOLIC');
-    }
-
-    if (!Number.isFinite(diastolic)) {
-      return failure('diastolic must be a valid number', 'INVALID_DIASTOLIC');
+    if (invalid) {
+      return invalid;
     }
 
     const db = await openDB();
@@ -261,9 +285,6 @@ export async function updateBPLog(userId, id, data) {
       return failure('No data provided', 'NO_DATA');
     }
 
-    if (data.week_number > 40) {
-      return failure('Please enter a valid week', 'INVALID_FEILDS');
-    }
     const db = await openDB();
 
     // IMPORTANT:
@@ -294,20 +315,10 @@ export async function updateBPLog(userId, id, data) {
 
     const note = data.note ?? entry.note;
 
-    // Validate updated values
-    if (!Number.isInteger(Number(weekNumber))) {
-      return failure(
-        'week_number must be a valid integer',
-        'INVALID_WEEK_NUMBER',
-      );
-    }
+    const invalid = validateBPValues(weekNumber, systolic, diastolic);
 
-    if (!Number.isFinite(Number(systolic))) {
-      return failure('systolic must be a valid number', 'INVALID_SYSTOLIC');
-    }
-
-    if (!Number.isFinite(Number(diastolic))) {
-      return failure('diastolic must be a valid number', 'INVALID_DIASTOLIC');
+    if (invalid) {
+      return invalid;
     }
 
     await db.execute(
