@@ -227,12 +227,16 @@ export const generateResponse = async conversation => {
   }
 
   const lastMessage = conversation.filter(msg => msg?.role === 'user').pop();
-  const cacheKey = lastMessage?.content?.trim();
+  // The reply depends on the whole conversation, including the system prompt,
+  // so two conversations only share a reply when all of their messages match.
+  const cacheKey = lastMessage?.content?.trim()
+    ? JSON.stringify(conversation.map(msg => [msg?.role, msg?.content]))
+    : null;
 
   if (cacheKey) {
     const cachedResponse = getCache(cacheKey);
     if (cachedResponse) {
-      console.log('Returning cached response for:', cacheKey);
+      if (__DEV__) console.log('Returning cached response');
       return cachedResponse;
     }
   }
