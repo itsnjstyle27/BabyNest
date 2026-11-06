@@ -19,6 +19,7 @@ import {Modal} from 'react-native-paper';
 import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {formatLocalDate} from '../utils/formatLocalDate';
 import {
   addTask,
   getTasks,
@@ -219,7 +220,7 @@ const TimelineScreen = ({navigation}) => {
       return;
     }
 
-    const appointmentDate = date.toISOString().split('T')[0];
+    const appointmentDate = formatLocalDate(date);
     const appointmentTime = date.toTimeString().split(' ')[0].slice(0, 5);
 
     setNewAppointment({

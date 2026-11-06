@@ -18,6 +18,7 @@ import DateTimePickerModal from 'react-native-modal-datetime-picker';
 import Toast from 'react-native-toast-message';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { addAppointment, deleteAppointment, getAppointments, updateAppointment } from '../storage/appointments';
+import {formatLocalDate} from '../utils/formatLocalDate';
 
 const days = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'];
 const colors = ['#FDE68A', '#BFDBFE', '#FECACA', '#D1FAE5'];
@@ -178,7 +179,7 @@ const ScheduleScreen = ({route}) => {
     }
 
     let appointmentTime = '';
-    const appointmentDate = date.toISOString().split('T')[0];
+    const appointmentDate = formatLocalDate(date);
     if (!isDateSelectorVisible) {
       appointmentTime = date.toTimeString().split(' ')[0].slice(0, 5);
     }
